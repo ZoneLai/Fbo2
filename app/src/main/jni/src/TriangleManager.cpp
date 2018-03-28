@@ -48,8 +48,8 @@ void TriangleManager::onStop() {
 }
 
 void TriangleManager::onDestroy() {
-    glDeleteVertexArrays(2, _vaoArrays);
-    glDeleteBuffers(2, _vboBuffers);
+    glDeleteVertexArrays(1, _vaoArrays);
+    glDeleteBuffers(1, _vboBuffers);
     glDeleteTextures(3, _textures);
     glDeleteFramebuffers(1, &_frameBuffer);
     glDeleteProgram(_sProgramPlay);
@@ -70,16 +70,15 @@ void TriangleManager::initGL(int widgetWidth, int widgetHeight, int photoWidth, 
         _mvpMatrixLoc       = glGetUniformLocation(_sProgramPlay,   "u_MvpMatrix");
         _sampler2DLoc       = glGetUniformLocation(_sProgramPlay,   "u_Texture");
         GLfloat vertices[]  = {
-            -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // A
-             0.5f, -0.5f, 0.0f, 1.0f, 1.0f, // B
-            -0.5f,  0.5f, 0.0f, 0.0f, 0.0f, // C
-            -0.5f,  0.5f, 0.0f, 0.0f, 0.0f, // C
-             0.5f, -0.5f, 0.0f, 1.0f, 1.0f, // B
-             0.5f,  0.5f, 0.0f, 1.0f, 0.0f  // D
+            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, // A
+             1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // B
+            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f, // C
+            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f, // C
+             1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // B
+             1.0f,  1.0f, 0.0f, 1.0f, 1.0f  // D
         };
-        // vao && vbo
-        glGenVertexArrays(2, _vaoArrays);
-        glGenBuffers(2, _vboBuffers);
+        glGenVertexArrays(1, _vaoArrays);
+        glGenBuffers(1, _vboBuffers);
         glBindVertexArray(_vaoArrays[0]);
         glBindBuffer(GL_ARRAY_BUFFER, _vboBuffers[0]);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -94,30 +93,6 @@ void TriangleManager::initGL(int widgetWidth, int widgetHeight, int photoWidth, 
         );
         glEnableVertexAttribArray(_positionLoc);
         // 纹理坐标
-        glVertexAttribPointer(
-            _textCoordLoc,
-            2,
-            GL_FLOAT,
-            GL_FALSE,
-            5 * sizeof(GL_FLOAT),
-            (GLvoid*)(3 * sizeof(GL_FLOAT))
-        );
-        glEnableVertexAttribArray(_textCoordLoc);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-        // fbo 共用同一个shader
-        glBindVertexArray(_vaoArrays[1]);
-        glBindBuffer(GL_ARRAY_BUFFER, _vboBuffers[1]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        glVertexAttribPointer(
-            _positionLoc,
-            3,
-            GL_FLOAT,
-            GL_FALSE,
-            5 * sizeof(GL_FLOAT),
-            (GLvoid*)0
-        );
-        glEnableVertexAttribArray(_positionLoc);
         glVertexAttribPointer(
             _textCoordLoc,
             2,
@@ -169,30 +144,29 @@ void TriangleManager::initGL(int widgetWidth, int widgetHeight, int photoWidth, 
 void TriangleManager::drawFrame() {
     LOGE("===========================");
     glUseProgram(_sProgramPlay);
-    // Step1 启用自定义的FBO
-    glBindFramebuffer(GL_FRAMEBUFFER, _frameBuffer);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glViewport(0, 0, _photoWidth, _photoHeight);
 
     glBindVertexArray(_vaoArrays[0]);
     glUniformMatrix4fv(_mvpMatrixLoc, 1, GL_FALSE, glm::value_ptr(_mvpMatrix));
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _textures[0]);
-    // glUniform1i(_sampler2DLoc, 0);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    // 恢复默认FBO	在矩形上绘制FBO的纹理
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glUniform1i(_sampler2DLoc, 0);
 
+    // Step1 启用自定义的FBO
+    glBindFramebuffer(GL_FRAMEBUFFER, _frameBuffer);
+    //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, _photoWidth, _photoHeight);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    // 恢复默认FBO
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     // Step2
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, _textures[1]);
+    glUniform1i(_sampler2DLoc, 1);
+
+    //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(_leftPoint, _topPoint, _widgetWidth, _widgetHeight);
-
-    glBindVertexArray(_vaoArrays[1]);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, _textures[1]);
-    // glUniform1i(_sampler2DLoc, 0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glBindVertexArray(0);
@@ -204,7 +178,7 @@ void TriangleManager::onChange(int leftPoint, int topPoint, int width, int heigh
     _topPoint           = topPoint;
     _widgetWidth        = width;
     _widgetHeight       = height;
-    _modelMatrix	    = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 2.0f));
+    _modelMatrix	    = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
     //_modelMatrix        = glm::rotate(_modelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     _viewMatrix         = glm::lookAt(glm::vec3(0.0f, 0.0f, 6.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     _projectionMatrix   = glm::ortho(-1.0f, 1.0f, -(float) _widgetHeight / _widgetWidth, (float) _widgetHeight / _widgetWidth, 5.0f, 7.0f);

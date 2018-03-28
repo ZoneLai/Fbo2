@@ -35,8 +35,8 @@ private:
     int                         _leftPoint;
     int                         _topPoint;
     GLuint                      _sProgramPlay;
-    GLuint						_vaoArrays[2];
-    GLuint						_vboBuffers[2];
+    GLuint						_vaoArrays[1];
+    GLuint						_vboBuffers[1];
     GLuint                      _frameBuffer;
     GLuint                      _renderBuffer;
     GLuint                      _textures[2];
