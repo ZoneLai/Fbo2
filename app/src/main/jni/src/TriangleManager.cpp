@@ -70,12 +70,12 @@ void TriangleManager::initGL(int widgetWidth, int widgetHeight, int photoWidth, 
         _mvpMatrixLoc       = glGetUniformLocation(_sProgramPlay,   "u_MvpMatrix");
         _sampler2DLoc       = glGetUniformLocation(_sProgramPlay,   "u_Texture");
         GLfloat vertices[]  = {
-            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, // A
-             1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // B
-            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f, // C
-            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f, // C
-             1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // B
-             1.0f,  1.0f, 0.0f, 1.0f, 1.0f  // D
+            -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, // A
+             1.0f, -1.0f, 0.0f, 1.0f, 1.0f, // B
+            -1.0f,  1.0f, 0.0f, 0.0f, 0.0f, // C
+            -1.0f,  1.0f, 0.0f, 0.0f, 0.0f, // C
+             1.0f, -1.0f, 0.0f, 1.0f, 1.0f, // B
+             1.0f,  1.0f, 0.0f, 1.0f, 0.0f  // D
         };
         glGenVertexArrays(1, _vaoArrays);
         glGenBuffers(1, _vboBuffers);
@@ -106,36 +106,33 @@ void TriangleManager::initGL(int widgetWidth, int widgetHeight, int photoWidth, 
         glBindVertexArray(0);
         // 创建纹理对象绑定纹理单元
         glGenTextures(3, _textures);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, _textures[0]);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         // texImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mBitmap, 0);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        // fbo
-        glGenFramebuffers(1, &_frameBuffer);
+
+        glGenFramebuffers(1, &_frameBuffer);            // fbo
         glBindFramebuffer(GL_FRAMEBUFFER, _frameBuffer);
+        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, _textures[1]);     // 颜色
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _photoWidth, _photoHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);   // 预分配空间
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _textures[1], 0);
-
-        //glBindTexture(GL_TEXTURE_2D, _textures[2]);     // 深度
-        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        //glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, _photoWidth, _photoHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr); // 预分配空间
-        //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, _textures[2], 0);
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
             LOGE("FBO not complete! , Error");
             return;
         }
-        glFrontFace(GL_CCW);
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
+        //glFrontFace(GL_CCW);
+        //glEnable(GL_CULL_FACE);
+        //glCullFace(GL_BACK);
     } else {
         LOGE("CompileShaderProgram===================");
     }
@@ -144,28 +141,24 @@ void TriangleManager::initGL(int widgetWidth, int widgetHeight, int photoWidth, 
 void TriangleManager::drawFrame() {
     LOGE("===========================");
     glUseProgram(_sProgramPlay);
-
     glBindVertexArray(_vaoArrays[0]);
     glUniformMatrix4fv(_mvpMatrixLoc, 1, GL_FALSE, glm::value_ptr(_mvpMatrix));
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, _textures[0]);
-    glUniform1i(_sampler2DLoc, 0);
 
-    // Step1 启用自定义的FBO
     glBindFramebuffer(GL_FRAMEBUFFER, _frameBuffer);
-    //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, _photoWidth, _photoHeight);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    // 恢复默认FBO
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // Step2
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, _textures[1]);
     glUniform1i(_sampler2DLoc, 1);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, _textures[0]);
+    glUniform1i(_sampler2DLoc, 0);
     glViewport(_leftPoint, _topPoint, _widgetWidth, _widgetHeight);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
